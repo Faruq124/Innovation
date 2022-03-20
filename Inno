@@ -1,0 +1,675 @@
+#include <Servo.h>
+#include <WiFi.h>
+const int trigPin = 19 ; //Servo trig pin to D10
+const int echoPin = 18; // Servo echo pin to D11
+
+char ssid[] = "DCU-Guest-WiFi";
+char server[] = "54.78.246.30";
+int port = 8081;
+
+int motor1PWM = 39; // P2.6
+int motor1Phase = 40; // P2.7
+int motor2PWM = 34; // P2.6
+int motor2Phase = 38; // P2.7
+
+long duration;
+int distance;
+int angle=45; //100 -0 degrees
+
+bool trig1= true;
+int trig2=0;
+
+
+Servo servo_motor; //Servo
+WiFiClient client; 
+
+void setup(){
+Serial.begin(9600);
+//Wifi_connect();
+servo_motor.attach(11); //Servo signal pin to D8
+
+pinMode(trigPin, OUTPUT);
+pinMode(echoPin, INPUT);
+
+ digitalWrite(motor1Phase, HIGH); //forward
+ analogWrite(motor1PWM, 0); // set speed of motor
+ digitalWrite(motor2Phase, HIGH); //forward
+ analogWrite(motor2PWM, 0);
+
+
+}
+
+void loop(){
+
+  delay(100);
+  digitalWrite(trigPin , HIGH);
+  delayMicroseconds(1000);
+  digitalWrite(trigPin , LOW);
+  duration = pulseIn(echoPin , HIGH);
+  distance = (duration/2) / 28.5;
+
+
+ /* Serial.print("Distance: ");
+  Serial.println(distance);
+  Serial.print("Angle: ");
+  Serial.println(angle);*/
+
+
+
+if(angle>=40 && angle<=50 && distance >11  && distance <= 40){ /// Straight
+  digitalWrite(motor1Phase, HIGH); //forward
+  analogWrite(motor1PWM, 140); // set speed of motor
+  digitalWrite(motor2Phase, HIGH); //forward
+  analogWrite(motor2PWM, 140);
+   }
+   
+if(distance>8 && distance<=11){
+  digitalWrite(motor1Phase, HIGH); //forward
+  digitalWrite(motor2Phase, HIGH); //forward
+  analogWrite(motor1PWM, 0); // set speed of motor
+  analogWrite(motor2PWM, 0);
+}
+  
+if(distance <= 8 ){ /// Backwards
+
+  if(angle>=40 && angle<=50 ){
+  digitalWrite(motor1Phase, LOW); 
+  analogWrite(motor1PWM, 100); 
+  digitalWrite(motor2Phase, LOW); 
+  analogWrite(motor2PWM, 100);}
+
+  if(angle>50 && angle <=100){
+  digitalWrite(motor1Phase, LOW); 
+  analogWrite(motor1PWM, 80); 
+  digitalWrite(motor2Phase, LOW); 
+  analogWrite(motor2PWM, 50);
+
+switch(angle){
+   
+   case 55:
+          trig2++;
+      
+      switch(trig2){    
+            case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            trig2=0;
+           
+            
+            break;
+            
+            default:
+            break;}
+
+   case 60:
+          trig2++;
+         
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+        
+            break;
+            
+            default:
+            break;}
+
+    case 65:
+          trig2++;
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+           
+            
+            break;
+            
+            default:
+            break;}
+
+    case 70:
+          trig2++;
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+         
+            break;
+            
+            default:
+            break;}
+
+    case 75:
+          trig2++;
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+             Serial.print("New Angle");
+            Serial.println(angle);
+            
+            break;
+            
+            default:
+            break;}
+
+     case 80:
+          trig2++;
+  
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+         
+            break;
+            
+            default:
+            break;}
+            
+      case 85:
+          trig2++;
+          
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            
+            break;
+            
+            default:
+            break;}
+
+      case 90:
+          trig2++;
+         
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            
+            break;
+            
+            default:
+            break;}
+
+       case 95:
+          trig2++;
+          
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+          
+            break;
+            
+            default:
+            break;}
+         
+       case 100:
+          trig2++;
+        
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            
+            break;
+            
+            default:
+            break;}
+ }   }
+
+if(angle<40 && angle>=5){
+   digitalWrite(motor1Phase, LOW);// backwards
+  analogWrite(motor1PWM, 70); 
+  digitalWrite(motor2Phase, LOW); 
+  analogWrite(motor2PWM, 100);
+
+switch(angle){
+   
+   case 5:
+       trig2++;
+
+     switch(trig2){
+             case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            break;
+            default:
+            break;}
+            
+   case 10:
+       trig2++;
+
+     switch(trig2){
+             case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            break;
+            default:
+            break;}
+   case 15:
+       trig2++;
+
+     switch(trig2){
+             case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            break;
+            default:
+            break;}
+  case 20:
+       trig2++;
+
+     switch(trig2){
+             case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            break;
+            default:
+            break;}
+            
+   case 25:
+          trig2++;
+      
+      switch(trig2){    
+            case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            break;
+            
+            default:
+            break;}  
+                      
+   case 30:
+          trig2++;
+      
+      switch(trig2){    
+            case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            break;
+            
+            default:
+            break;}
+                        
+   case 35:
+          trig2++;
+      
+      switch(trig2){    
+            case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            break;
+            
+            default:
+            break;}
+                        
+   case 40:
+          trig2++;
+      
+      switch(trig2){    
+            case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            break;
+            
+            default:
+            break;}
+
+
+}
+
+
+  
+  }
+  }
+
+
+  
+if(distance >11  && distance < 40){ ////Turn left or right
+
+if(angle>50 && angle <=100){
+  digitalWrite(motor1Phase, HIGH); //forward
+  analogWrite(motor1PWM, 80); // set speed of motor
+  digitalWrite(motor2Phase, HIGH); //forward
+  analogWrite(motor2PWM, 50);
+
+switch(angle){            
+   case 55:
+          trig2++;
+      
+      switch(trig2){    
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+;
+            
+            break;
+            
+            default:
+            break;}
+
+   case 60:
+          trig2++;
+        
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+          
+            break;
+            
+            default:
+            break;}
+
+    case 65:
+          trig2++;
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+          
+            
+            break;
+            
+            default:
+            break;}
+
+    case 70:
+          trig2++;
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            
+            break;
+            
+            default:
+            break;}
+
+    case 75:
+          trig2++;
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            break;
+            
+            default:
+            break;}
+
+     case 80:
+          trig2++;
+          analogWrite(motor1PWM, 100);
+          analogWrite(motor2PWM, 50);
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+             break;
+            
+            default:
+            break;}
+            
+     case 85:
+          trig2++;
+          analogWrite(motor1PWM, 100);
+          analogWrite(motor2PWM, 50);
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+           
+             break;
+            
+            default:
+            break;}
+            
+      case 90:
+          trig2++;
+          analogWrite(motor1PWM, 100);
+          analogWrite(motor2PWM, 50);
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+             
+             break;
+            
+            default:
+            break;}
+
+      case 95:
+          trig2++;
+          analogWrite(motor1PWM, 100);
+          analogWrite(motor2PWM, 50);
+
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+         
+            
+            default:
+            break;}
+
+            
+      case 100:
+          trig2++;
+    
+       switch(trig2){
+            case 25: 
+            angle-=5;
+            servo_motor.write(angle);
+            trig2=0;
+          //
+            
+            
+            break;
+            
+            default:
+            break;}
+ }   }
+           
+
+if(angle<40 && angle>=5){  ///Left
+   digitalWrite(motor1Phase, HIGH); //forward
+  analogWrite(motor1PWM, 70); // set speed of motor
+  digitalWrite(motor2Phase, HIGH); //forward
+  analogWrite(motor2PWM, 100);
+
+switch(angle){
+            
+   case 5:
+       trig2++;
+
+     switch(trig2){
+             case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            break;
+            default:
+            break;}
+            
+   case 10:
+       trig2++;
+
+     switch(trig2){
+             case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            break;
+            default:
+            break;}
+            
+   case 15:
+       trig2++;
+
+     switch(trig2){
+             case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            break;
+            default:
+            break;}
+
+  case 20:
+       trig2++;
+
+     switch(trig2){
+             case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            break;
+            default:
+            break;}
+            
+   case 25:
+          trig2++;
+      
+      switch(trig2){    
+            case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            break;
+            
+            default:
+            break;}  
+                      
+   case 30:
+          trig2++;
+      
+      switch(trig2){    
+            case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            break;
+            
+            default:
+            break;}
+                        
+   case 35:
+          trig2++;
+      
+      switch(trig2){    
+            case 25: 
+            angle+=5;
+            servo_motor.write(angle);
+            trig2=0;
+            
+            break;
+            
+            default:
+            break;}
+                        
+
+}
+
+ 
+}}
+  
+if(distance > 40){ // to Stop
+    analogWrite(motor1PWM, 0); // set speed of motor
+    analogWrite(motor2PWM, 0);
+   if(angle<=100 && angle>=5){
+
+
+    if (trig1){
+      angle-=5;
+      servo_motor.write(angle);
+      }
+      
+      else{         
+    angle+=5;
+    servo_motor.write(angle);
+        }
+        
+    }
+    
+    else if(angle>=100 ){
+      trig1=true;
+      angle-=5;
+      servo_motor.write(angle);
+    }
+    else if (angle<=5){
+      trig1=false;
+      angle+=5;
+      servo_motor.write(angle);
+      }
+}
+
+}
+
+void Wifi_connect() {
+Serial.print("Connecting to network: ");
+Serial.print(ssid);
+Serial.flush();
+WiFi.begin(ssid);
+while (WiFi.status() != WL_CONNECTED) {
+Serial.print(".");
+Serial.flush();
+delay(300);
+}
+Serial.println("Connected");
+Serial.print("Obtaining IP address");
+Serial.flush();
+while (WiFi.localIP() == INADDR_NONE) {
+Serial.print(".");
+Serial.flush();
+delay(300);
+}
+Serial.println();
+Serial.print("IP Address: ");
+Serial.println(WiFi.localIP());
+}
