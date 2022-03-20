@@ -1,0 +1,839 @@
+//CONTROLS:
+
+//drive();
+/* 
+drive is the function that handles everything from following the line to correcting itself 
+and everything in between.
+ */
+
+ //stop_car(n); n=1 for the car to stop ...n=0 for the car to continue 
+ /*
+  the stop function just prevents the drive function from operating but as soon as you pass 0 into the stop function it just starts back up again
+  as if nothing happened. 
+example
+stop_car(1);
+turn_right();
+stop_car(0);
+  */
+
+//perp_line
+/*
+ This is a variable. whatever you set it to, the car will do something different whenever it reaches a perpendicular line.
+ perp_line= 0  //go straight on
+ perp_line= 1  // turn 180 degrees
+ perp_line= 2  // turn 90 degrees left
+ perp_line= 3  // turn 90 dgrees right
+ perp_line= 4  // stop with wheels on the line for 1 second and then return to drive
+ perp_line= 5  // stop with wheels on line and stop_car(1)
+ perp_line= 6  // stop with sensors on line and return to drive (will still be all sensors on so need to change perp_line in order to move)
+ perp_line= 7  // stop with sensors on line and stop_car(1)
+ 
+ I can add more to this if needed
+ */
+
+// you can call the following functions directrly at any time just remember to stop the drive function first ( stop_car(1) )
+
+//turn_ninety(n) -> 90 degree turn  n=-1 for left and n=1 for right
+
+//turn_around(n) -> 180 degree n=-1 to turn left or n=1 to turn right
+
+// turn_direction( time in seconds ,power, direction)   direction=-1 for left and direction=1 for right
+
+// drive_foreward(time in seconds , power)
+
+//drive_backwards(time in seconds, power)
+/*
+ so you can use these functions in order...
+ 
+ //example
+ stop_car(1);
+ drive_foreward(3,100);
+ turn_direction(4,110,1);
+ drive_backwards(2,250);
+ turn_around(-1);
+ turn_ninety(1);
+ drive_foreward(3,140);
+
+ //another example
+ stop_car(1);
+ for(int i=0;i<20;i++)
+ {
+ turn_direction(0.5,100,1);
+ drive_foreward(0.5,100);
+ }
+//this should give something resembling a circle
+
+ */
+
+/* so when it comes to trying to find a way to get the robot to go somewhere, we can just use these controls in stead of having to 
+   make things more complicated.*/
+
+////////////////START OF PROGRAM//////////////////
+
+
+
+int AnalogValue[5] = {0,0,0,0,0};
+int AnalogPin[5] = {A5,A8,A6,A13,A9}; //Analog pins P4.7, P4.4, P4.2, P4.0, P6.1
+//int motor1PWM = 40; // P2.6
+//int motor1Phase = 40; // P2.7
+//int motor2PWM = 40; // P2.6
+//int motor2Phase = 40; // P2.7
+
+
+//WIFI Related variables
+int g=0;
+int point=0;
+int r=0;
+int p=0;
+int i=0;
+#define BUFSIZE 512
+
+//Global Variables for driving
+int sens_val[5][10];
+/*This stands for sensor values, previously this was just a single demension array 
+that contained the sensor values, now its a 2d array in order to remember previous values..
+think of it like just saving the last 5 rows of the serial monitor. first [] is the actual sensor values (columns),
+and the second [] is the row
+*/
+int memory=10; 
+/*This is just a variable used to say that the number of rows we have is 10... just for the sake 
+of convenience when in for loops and if statements, dont have to just write 10 over and over again
+and if we ever wanted to change it to 11 or 12 etc ie more memory... only have to change in 2 places, here and sens_val[][memory] 
+*/
+int row_ref=0;
+/*stands for row reference, it is just what row we are currwntly on... at some point in the program this is incremented
+which means we move onto the next row and start doing stuff there. starts at zero because this is the first row in which
+sensor values are entered into
+*/
+int rows_empty=0;
+/*At some point in the program we have a function which checks if we need to reverse or not. If a row 
+is "empty" it just means that every value in that row is over 100 ie we looking at a black screen and no sensors are on. every time this happens we increment 
+this variable... if enough rows are empty we know its not just a fluke, we are deffinetly looking at a black screen and need to reverse
+*/
+int reverse_on_off; 
+/*just tells us if we are reversing or not*/
+int sens_on;
+/*which sensor is on, between 1 and 5.... 1 is most right, 5 is most left. this value is put through a switch() 
+and movement is decided.
+*/
+//int perp_line=0;
+/* stands for perpendicular line, its a variable which will tell us what we want to do if we reach a perpendicular line.... see the check sensors function for more detail*/
+int delay_val;
+/*dictates delay, not really neccesary*/
+
+int extra_case=0;
+/*this is a new variable for testing two sensors being on at the same time, if it works then good, see the check
+ * sensors function for more info.
+ */
+
+/* stands for stop variable, is either 1 or 0, if 1 the car stops, if 2 the car continues to drive*/
+
+
+void setupdriving() {Serial.begin(9600);}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////LOOP
+void loopdriving() {
+/*Nothing needed for this loop, the Drive function is called in the Instructions page*/
+ 
+ ////////PRINT STUFF/SERIAL MONITOR/////////////
+/*for (int i=0;i<5;i++)
+ {
+ AnalogValue[i]=analogRead(AnalogPin[i]);
+ Serial.print(AnalogValue[i]); // This prints the actual analog reading from the sensors
+ Serial.print("\t"); //tab over on screen
+ if(i==4)
+ { Serial.print("\n sonsor on ="); Serial.print(sens_on); 
+   Serial.print("\n");
+   Serial.print("\n extra_case ="); Serial.print(extra_case); 
+   Serial.print("\n");delay(200);
+   }} */
+ /////////////////////////////////////////////////
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////END OF LOOP
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////DRIVE
+void drive()
+{
+check_reverse(); // get a value for reverse_on_off
+check_sensors(); //get sens_on val
+
+/*just forewards for testing. remove '//'. even if reverse=2 it just sets it to 1 so we allways go straight.
+ testing only so remember to turn it off after your done cause it will mess with you.
+ */
+//reverse_on_off=1;
+//just reverse test, same gig as before ^
+//reverse_on_off=2;
+
+//only move if stop_var=1 i.e we dont want to stop
+if(stop_var==1){
+  switch(reverse_on_off){
+  case 1:forewards();break;
+  case 2:reverse();break;
+  default:break;
+  }
+}
+
+
+
+//array for memery is finite so need to wipe values when done with them and restart cycle.
+row_ref++;  // this is where row_ref is incremented
+if(row_ref==memory+1) //when array is full we still want to check it, so its when the row ref is 1 greater than memory that we wipe it
+{
+  row_ref=0; //reset refernce to start again
+  
+  for(int i=0; i<memory;i++)  //wipe array
+  {
+    for(int q=0;q<5;q++)
+    {
+      sens_val[q][i]=0;
+    }
+  }
+}
+
+ 
+
+return;
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////END OF DRIVE
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////CHECK_SENSORS
+void check_sensors(){
+
+ //pass values into array at the current row reference 
+for(int i=0;i<5;i++)
+{sens_val[i][row_ref]= analogRead(AnalogPin[i]);}
+
+
+
+/* this next block of code is used to find the perpendicular lines and respond... pretty much just
+  checks if more than 1 or 2 or 3 sensors are on and does stuff*/
+int checker=0; //youll see what this is used for in a second
+for(int i=0;i<5;i++)  // run through five sensors
+
+{
+  
+ for(int q=0;q<5;q++) //nested for loop, run through five sensors and compare with the i'th sensor
+ {
+     if(sens_val[i][row_ref]<=100 && sens_val[q][row_ref]<=100) // so far this is just the same code you would use to see if a letter is repeated in a word
+    { 
+      
+      if(i != q)  // so we have a match... 2 sensors are on, this just checks that they aint the same sensor
+      {
+        checker++;
+        /*checker is a counter that tells us how many times there is a match between 2 senors
+         */
+      }}
+ }
+ /* by the end, the relationship telling us how many sensors are on is ... the number of sensors on= checker * checker-1
+
+for five sensors -> 5*4 = 20   20->5 sensors
+for four sensors -> 4*3= 12    12-> 4 sensors
+for three sensors -> 3*2= 6    6-> 3 sensors
+for two sensors -> 2*1 = 2     2-> 2 sensors
+for one sensor -> 1*0 = 0  ....... ie if checker is 0 then only 1 sensor is on
+ */
+ }  
+
+/*next bit of code deals with what to do when 3 or more sensors are on at the same time,
+ in other words we are at a perpendicular line and want to be able to do something
+ */
+
+if(checker>=6 )   /// 3 or more sensors  are on
+{
+
+switch(perp_line)
+{
+case 0: sens_on=3;perp_indicator=1;return;break;//just roll with the middle sensor and continue moving foreward
+case 1: turn_around(1); perp_indicator=1; return; break; //turn around 180 and indicator goes high to acknowledge we have done this operation
+case 2: turn_ninety(-1); perp_indicator=1;return; break; //turn 90 left and  "
+case 3:turn_ninety(1);perp_indicator=1; return; break; //turn 90 right and  "
+case 4: stop_wheels_on_line();delay(1000);perp_indicator=1;return; //stop with wheels on line and  " , continue after time passes
+case 5:  stop_wheels_on_line(); stop_car(1); perp_indicator=1; return; //stop with wheels on line and  ", dont continue
+case 6:   analogWrite(motor2PWM, 0); analogWrite(motor1PWM, 0);  delay(1000);perp_indicator=1;return; break; //stop with sensors on line and  ", after delay continue
+case 7:   analogWrite(motor2PWM, 0); analogWrite(motor1PWM, 0);  stop_car(1);perp_indicator=1;return; break; //stop with sensors on line and  ", dont continue
+  
+}}
+
+
+
+
+
+
+/*if you wanted to, add more of these statements for whatever you want egs..
+ * 
+ if(perp_line==10)
+{
+  turn_left(); //90 degree turn left
+  
+  for(int i=0;i<number;i++)
+  {
+   drive_foreward();
+  }
+  turn_aroud();
+  return;// back to whatever function called
+}
+
+these examples havnt been tested thoe keep in mind^... the point is you can mess with it.
+ */
+
+
+
+
+/*this next bit actually checks which sensor'(s) is on, if we got this far into the funciton
+  then there is no more than 2 sensor that can be on if any are on at all.. the previous block guarentees that because
+  if 3 or more sensors are on its considered a perpendicular line and dealt with by one of the previous if statements and the whole
+  function is returned.... so if we are this far then at most 2 sensors are on. we can now go through a process to find what is the case and
+  decide on a sens_on (sensor on) value*/
+
+  sens_on=10; //default case
+  for(int i=0;i<5;i++) //checks individual sensors and assigns value to sens_on (sensor on)
+  {
+    if(sens_val[i][row_ref]<=100) //is the sensor i in the current row on?
+    {sens_on=6-(i+1);} // sens_val is in 0,1,2,3,4 format. we want 1,2,3,4,5 format for the switch statement. again sens_on is the sensor thats on.
+   }
+
+
+/*the next bit just deals with if 2 sensors of either side are on.
+ */
+
+extra_case=0; //just always make sure we reset this.
+/*extra case variable is just used to indicate that we need to adjust the speeds of the motors for 2 sensors being on in stead of just 1.
+ */
+if(checker==2)
+{
+
+//RIGHT
+ //inner most intermediate Right
+  if(sens_val[2][row_ref]<=100 && sens_val[3][row_ref]<=100) // account for both at same time
+ {
+  sens_on=2; //using the case for the closer sensors to the middle
+  extra_case=1;//1 just means we are in '2 sensors being on mode'
+  return;
+ }
+ // outermost intermediate Left
+    if(sens_val[0][row_ref]<=100 && sens_val[1][row_ref]<=100) // account for both at same time
+ {
+  sens_on=5; //using the case for the further sensors to the middle
+  extra_case=1; //1 just means we are in '2 sensors being on mode'
+
+  return;
+ }
+
+//LEFT 
+//inner most intermediate Left
+     if(sens_val[1][row_ref]<=100 && sens_val[2][row_ref]<=100) // account for both at same time
+ {
+  sens_on=4; //using the case for the closer sensors to the middle
+  extra_case=1;//1 just means we are in '2 sensors being on mode'
+  
+  return;
+ }
+  // outermost intermediate Righjt
+  if(sens_val[3][row_ref]<=100 && sens_val[4][row_ref]<=100) // account for both at same time
+ {
+  sens_on=1; //using the case for the further sensors to the middle
+  extra_case=1;//1 just means we are in '2 sensors being on mode'
+   
+  return;
+ }
+}
+
+
+ 
+return;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////END OF CHECK-SENSORS
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////CHECK_REVERSE
+void check_reverse()
+{
+/*if reverse_on/off= 1 forwards, if 2 backwards.
+ we originaly just set it to 1, then we run through a process,
+ if at the end of the process its still 1 then we go foreward
+ otherwise it must be 2 and we go backwards
+ */
+reverse_on_off=1;  
+
+
+/*so as i mentioned previously, somewhere in the program, row_ref is incremented... its every time the loop
+ operates that it increments. memory is the number of rows we are remembering. if the row reference is incremented
+ to the point that it actually equals the memory value, then we have a full array.. its only when the array is full
+ that we check its values and figure out if we need to reverse or not.  its full because in the check sensors function we filled 
+ the final row with values and then moved onto this.
+ */
+if(row_ref==memory) //were at the last row of memory and array is full
+{
+
+rows_empty=0; // by the the end of this block, this will be some value, only increments when all values in the row are 'blank' or 'empty'
+
+for(int q=0;q<memory;q++) // nested for loop, going through each row 
+{
+  int row_check=0; 
+  /* row check increments whenever a sensor is blank, its just the number of blank sensors in a given row, resets every row
+   and if its 5 by the end of the check .. ie 5 sensors are off.. row_empty increments and again this is a value which counts
+   the number of full empty rows
+   */
+
+   
+  for(int i=0;i<5;i++) //individual values within the q'th row
+ {
+  if(sens_val[i][q]>100) //if the value at i'th sensor, q'th row, is over 100, increment check
+  {row_check++;}
+  if(row_check==5) //if check equals five at any point throughout this loop well then the whole line must be blank.. inc rows empty
+   {rows_empty++;}}}}
+
+   /*if the number of empty rows equals the memory value, then the entire array is completely empty
+    which means weve been looking at a black screen for a while.
+    */
+if(rows_empty==memory) // entire array is empty values
+{rows_empty=0; //reset rows empty to use again
+reverse_on_off=2; // we know that we are not on the line anymore so set the reverse value to 2
+}
+
+//END of check
+
+//so by the end, reverse_on/off is either 1 or 2, and should be 2 if the last readings have all been over 100 ie are empty
+  return;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////END OF CHECK REVERSE
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////FOREWARDS
+void forewards()
+{
+
+ digitalWrite(motor1Phase, HIGH); digitalWrite(motor2Phase, HIGH); //both wheels foreward
+
+
+//these are just for tests, can overwrite sens_on in order to perform specific action
+//extra_case=1;
+//extra_case=0;
+//sens_on=1; // hard right
+//sens_on=2; // bit right
+//sens_on=3; //straight
+//sens_on=4; //bit left
+//sens_on=5; //hard left
+//////////////////////////////////////
+
+
+
+
+///////CALIBRATION IS DONE HERE////////////////////////////
+ 
+//dY_1<=dY_2<=dY_3<=dY_4 //pretty much just the turning speeds
+int dY_1=120 ;    // between middle sensor and first either side 
+int dY_2=120;  // first sensor either side (closest)
+int dY_3=220; // between first and second sensor either side 
+int dY_4=220; // second sensor either side (furthest)
+//greater dY is, the greater the tun speed
+
+delay_val=25; //delay needs to be reduced as much as possible without sacrificing precision
+
+int straight_speed=220; // if < 230 ish will need to add 8 or 7 to the right motor. dictates the speed of everything else
+
+int default_speed=220;
+
+/////////////////////////////////////////////////////
+
+
+
+
+
+// 'furthest' means sensors 1 and 5, 'closest' means 2 and 4
+
+/*
+ X can always be considered as the faster turning wheel and will always be 250.
+ within the switch statement the X and Y values are put in the proper places to
+ obtain the required direction of turn depending on the which sensor is on.
+ */
+
+ //just match to current straight speed as testing at lower speeds means we dont need to replace every value over and over again.
+int X_furthest=straight_speed; int X_closest=straight_speed; 
+
+
+// SLOWER TURNING WHEEL
+int Y_furthest=straight_speed-dY_4; 
+
+int Y_closest=straight_speed-dY_2;
+
+/* the idea behind this is that we only have the cases for the individual sensors, 
+ *  ie only 2 turning speeds. to fix this we just have a check for 2 sensors being on and simply adjust the speeds
+ *  giving us 4 turning speeds.
+ */
+
+if(extra_case==1) // 2 sensors are on 
+{
+  Y_furthest=straight_speed-dY_3;
+  Y_closest=straight_speed-dY_1;
+ } 
+/*
+ simular to:
+
+       s5        s4        /s3/        s2        s1     <- 1 sensor on 
+           s5,4      s4,3  /s3/  s3,2      s2,1         <- 2 sensors on
+
+    In stead of using s1->5 for the switch statement cases, we use s5,4 -> s2,1 .
+    so its like just switching the mode we are working in.
+ */
+
+
+//THE ACTUAL DRIVING 
+
+  switch(sens_on)
+{
+  //                LEFT MOTOR                         RIGHT MOTOR
+  case 1:  analogWrite(motor2PWM, X_furthest); analogWrite(motor1PWM, Y_furthest); break;    //Hard right
+   case 2:  analogWrite(motor2PWM, X_closest); analogWrite(motor1PWM, Y_closest); break;     //Little right
+    case 3:  analogWrite(motor2PWM, (straight_speed-10)); analogWrite(motor1PWM, straight_speed); break; // Straight
+     case 4:  analogWrite(motor2PWM, Y_closest); analogWrite(motor1PWM, X_closest); break; //Little left
+      case 5: analogWrite(motor2PWM,Y_furthest); analogWrite(motor1PWM, X_furthest); break; // Hard left
+      default:  analogWrite(motor2PWM, (default_speed-10)); analogWrite(motor1PWM, default_speed); break; //Default speed, ie we aint got a case for some reason
+
+}
+delay(delay_val); //delay at the end, again get it as low as possible without giving up precision
+
+return;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////END OF FOREWARDS
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////REVERSE
+void reverse()
+{
+
+/*
+ This function is pretty much identical to the forewards function but
+ has several extra tweaks just to ensure that everything runs smoother.
+ */
+
+digitalWrite(motor1Phase, LOW); digitalWrite(motor2Phase, LOW); //both wheels backwards
+analogWrite(motor2PWM, 200); analogWrite(motor1PWM, 208); // this just gets her kicking in a straight line for a split second, it helps.
+
+//these are just for tests, can overwrite sens_on in order to perform specific action
+//directions in reverse just get a little funky so i use clockwise and anti clockwise in stead of left and right
+//extra_case=1;
+//extra_case=0;
+//sens_on=1; // hard clockwise
+//sens_on=2; // bit clockwise
+//sens_on=3; //straight
+//sens_on=4; //bit counter-clockwise
+//sens_on=5; //hard counter-clockwise
+//////////////////////////////////////
+
+/*
+ Essentially the same idea as last time with Y being the slower turning wheel and 
+ X being the wheel at full blast. dY is our turn speeds
+ */
+
+///////CALIBRATION IS DONE HERE////////////////////////////
+ 
+//dY_1<dY_2<dY_3<dY_4 //pretty much just the turning speeds
+int dY_1=150 ;    // between middle sensor and first either side
+int dY_2=150;  // first sensor either side (closest)
+int dY_3=150; // between first and second sensor either side
+int dY_4=150; // second sensor either side (furthest)
+
+delay_val=20; //delay needs to be reduced as much as possible without sacrificing precision
+
+int straight_speed=150; // if < 230 ish will need to add 8 or 7 to the right motor
+
+int default_speed=150;
+
+/////////////////////////////////////////////////////
+
+//same gig
+int X_furthest= straight_speed;  int X_closest= straight_speed;  
+
+//same gig
+int Y_furthest=straight_speed-dY_4; 
+
+int Y_closest=straight_speed-dY_2;
+
+if(extra_case==1) // 2 sensors are on 
+{
+  Y_furthest=straight_speed-dY_3;
+  Y_closest=straight_speed-dY_1;
+ }
+////ACTUAL REVERSING
+/*everything is just inverted*/
+
+switch(sens_on)
+{   //                 LEFT MOTOR                           RIGHT MOTOR
+  case 5:  analogWrite(motor2PWM, X_furthest); analogWrite(motor1PWM, Y_furthest); break; // counter clockwise FAST
+   case 4:  analogWrite(motor2PWM, X_closest); analogWrite(motor1PWM, Y_closest); break; // counter clockwise  SLOW
+    case 3:  analogWrite(motor2PWM, (straight_speed-10)); analogWrite(motor1PWM, straight_speed+8); break; // straight back..there is no need for this case because if sensor 3 is on then we go foreward...
+     case 2:  analogWrite(motor2PWM, Y_closest); analogWrite(motor1PWM, X_closest); break; // clockwise SLOW
+      case 1: analogWrite(motor2PWM,Y_furthest); analogWrite(motor1PWM, X_furthest); break; // clockwise FAST
+      default:  analogWrite(motor2PWM, default_speed); analogWrite(motor1PWM, default_speed+25); break; // default straight back
+}
+delay(delay_val);
+
+
+//double check is neccesary, do we still need to reverse?
+
+/*check_reverse();
+if(reverse_on_off==2)
+{reverse();}*/
+
+//As soon as the middle sensor is reading something we start going foreward again / stop reversing
+//and if it got this far then reverse_on_off is 1 because if it was 2 then the previous statement would prevent this from happening.
+//so if sensors are detected and reverse_on_off is 1 then as soon as the sensor on is 3 we can go foreward again
+check_sensors();
+if(sens_on==3) // just return to whatever called 
+{return;}
+//and if it aint 3 then keep reversing and correcting until it is 3.
+if(sens_on!=3) //not centred we know to keep reversing
+{ reverse();}
+
+  return;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////END OF REVERSE
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////MANOUVERE FUNCTIONS
+/*
+ These functions were made in order to make the car do literally anything we want and for it to be conveniant
+ */
+
+
+void stop_car(int Y_N) // pass 1 for the car to stop and 0 for it to keep moving
+{
+ //this function just cuts off the drive function
+if(Y_N==1)
+{stop_var=2;analogWrite(motor2PWM, 0); analogWrite(motor1PWM, 0);} //stop  return;
+if(Y_N==0)
+{stop_var=1;analogWrite(motor2PWM, 0); analogWrite(motor1PWM, 0);} //stop return;
+return;
+}
+
+void stop_wheels_on_line() //move up from sensors on line to wheels on line
+{
+
+digitalWrite(motor2Phase, HIGH); digitalWrite(motor1Phase, HIGH); //move foreward a little just to get the sensors off of the perp line
+analogWrite(motor2PWM, 250); analogWrite(motor1PWM, 250);
+delay(150); //just gotta tweak this 
+analogWrite(motor2PWM, 0); analogWrite(motor1PWM, 0); //stop 
+
+
+return;
+}
+
+void drive_foreward(float t, float power)
+{
+  //t is to be in seconds
+  digitalWrite(motor2Phase, HIGH); digitalWrite(motor1Phase, HIGH); //move foreward 
+  analogWrite(motor2PWM, power); analogWrite(motor1PWM, power+7.5); //at this speed
+  delay(t*1000); //for this amount of time
+}
+
+void drive_backwards(float t, float power)
+{
+   //t is to be in seconds
+  digitalWrite(motor2Phase, LOW); digitalWrite(motor1Phase, LOW); //move move backwards
+  analogWrite(motor2PWM, power); analogWrite(motor1PWM, power+7.5); //at this speed
+  delay(t*1000); // for this amount of time
+}
+
+
+void turn_direction(float t,float power,int n )
+{
+   //t is to be in seconds
+if(n!=1 || n!=-1)
+{return;}
+if(n==-1)
+{ digitalWrite(motor2Phase, LOW); digitalWrite(motor1Phase, HIGH);}
+if(n==1)
+{ digitalWrite(motor2Phase, HIGH); digitalWrite(motor1Phase, LOW);}
+analogWrite(motor2PWM, power); analogWrite(motor1PWM, power);
+delay(t*1000);
+return;
+}
+
+void turn_ninety(int n) //90 degrees
+{
+    //if we are seing a perpendicular line then stop with the wheels on the line
+   if(perp_line==2 || perp_line==3)
+    {stop_wheels_on_line();}
+//if we arent given a proper argument then return
+
+
+
+//direciton to turn, -1 left and 1 right
+if(n==-1)
+{ digitalWrite(motor2Phase, LOW); digitalWrite(motor1Phase, HIGH);}
+if(n==1)
+{ digitalWrite(motor2Phase, HIGH); digitalWrite(motor1Phase, LOW);}
+
+analogWrite(motor2PWM, 0); analogWrite(motor1PWM, 0); 
+analogWrite(motor2PWM, 250); analogWrite(motor1PWM, 250);        //turn on spot
+delay(290);//just need to tweak delay really
+analogWrite(motor2PWM, 0); analogWrite(motor1PWM, 0);
+return;
+}
+
+
+
+void turn_around(int n) // 180 degrees
+{
+  //if we are seing a perpendicular line then stop with the wheels on the line
+ if(perp_line==1) 
+    {stop_wheels_on_line();}
+
+
+//direciton to turn, -1 left and 1 right
+if(n==-1)
+{ digitalWrite(motor2Phase, LOW); digitalWrite(motor1Phase, HIGH);}
+if(n==1)
+{ digitalWrite(motor2Phase, HIGH); digitalWrite(motor1Phase, LOW);}
+analogWrite(motor2PWM, 0); analogWrite(motor1PWM, 0); 
+analogWrite(motor2PWM, 250); analogWrite(motor1PWM, 250);        //turn on spot
+delay(600); //just need to tweak delay really
+analogWrite(motor2PWM, 0); analogWrite(motor1PWM, 0); 
+return;
+} 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////WIFI FUNCTIONS
+
+void Wifi_connect() {
+Serial.print("Connecting to network: ");
+Serial.print(ssid);
+Serial.flush();
+WiFi.begin(ssid);
+while (WiFi.status() != WL_CONNECTED) {
+Serial.print(".");
+Serial.flush();
+delay(300);
+}
+Serial.println("Connected");
+Serial.print("Obtaining IP address");
+Serial.flush();
+while (WiFi.localIP() == INADDR_NONE) {
+Serial.print(".");
+Serial.flush();
+delay(300);
+}
+Serial.println();
+Serial.print("IP Address: ");
+Serial.println(WiFi.localIP());
+}
+
+
+bool connect() {
+if (!client.connect(server, port)) {
+//Serial.println("error connecting to server");
+return false;
+}
+//Serial.println("Connected to server");
+return true;
+}
+
+
+
+////////////////
+void GetPosition(){
+  
+// post body
+String postBody("position=");
+postBody += position;
+
+// send post request and headers
+client.println("POST /api/arrived/740dd203 HTTP/1.1");
+client.println("Content-Type: application/x-www-form-urlencoded");
+client.print("Content-Length: ");
+client.println(postBody.length());
+client.println("Connection: close");
+client.println();
+
+// send post body
+client.println(postBody);
+//Serial.println(postBody);
+response();
+}
+
+
+/////////
+
+void response(){
+  
+//read response
+String response = readResponse();
+
+//Serial.println(response);
+// get status code
+int statusCode = getStatusCode(response);
+if(statusCode == 200) {
+// success, read body
+String body = getResponseBody(response);
+// check if at final destination
+if (!body.equals("undefined")) {
+destination = body.toInt();
+}
+if(body.equals("undefined")){
+  stop1=1;
+ // Serial.println("It is undefined ");
+  }}
+//delay(2000);
+//Serial.println("response:");
+//Serial.print(response);
+}
+
+String readResponse() {
+char buffer[BUFSIZE];
+memset(buffer, 0, BUFSIZE);
+client.readBytes(buffer, BUFSIZE);
+
+String response(buffer);
+//Serial.print(response);
+return response;
+}
+
+int getStatusCode(String& response) {
+String code = response.substring(9, 12);
+ //Serial.print("Coddddeeee:");
+ //Serial.println(code);
+
+ //ui=code.toInt();
+// Serial.println(ui);
+//if(ui==400|| ui==404){
+   //   no_destination=true;
+    // go=false;
+    // Serial.println("Error insufficient destinations");}
+    //  else if(ui==200){
+      //  Serial.println("Working");
+        //}
+return code.toInt();
+}
+
+String getResponseBody(String& response){
+int split = response.indexOf("\r\n\r\n");
+String body = response.substring(split+4, response.length());
+body.trim();
+//Serial.print("New Destination: ");
+b=body.toInt();
+//Serial.println(body);
+return body;
+}
+
+
+void readPS(){
+ PSvalue=analogRead(PS);
+}
+
+void runprox(){
+  readPS();
+  if (PSvalue>=585 && PSvalue<=900){
+    stop_car(1);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////END OF PROGRAM
