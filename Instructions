@@ -1,0 +1,900 @@
+#include <WiFi.h>
+#include <Servo.h>
+
+//Global Variables - Wifi
+WiFiClient client;
+char ssid[] = "DCU-Guest-WiFi"; 
+char server[] = "54.78.246.30";
+int port = 8081;
+int stop1= 0;
+int b=0;
+
+
+//Global Variables - Pathing
+int position=0;
+int destination=0;
+int step = 0;
+int x = 100;
+int perp_indicator=1;
+int perp_line=0;
+int stop_var=1;
+bool dir = true;
+bool flag_180 = true;
+bool sc = true;
+
+
+//Global Variables - Driving
+int motor1PWM = 39; // P2.6
+int motor1Phase = 40; // P2.7
+int motor2PWM = 34; // P2.6
+int motor2Phase = 38; // P2.7
+
+
+//Global Variables - Proximity Sensor
+bool wait= false;
+int PSvalue = 0;
+int PS = A1; //p5.4
+bool Indicator5 = false;
+int x1 = 170; //Motor 1: right
+int x2 = 157; //Motor 2: left
+
+//Global Variables - Innovation
+Servo servo_motor; //Servo
+const int trigPin = 19 ; //Servo trig pin to D10
+const int echoPin = 18; // Servo echo pin to D11
+long duration;
+int distance;
+int angle=45; //100 -0 degrees
+bool trig1= true;
+int trig2=0;
+int da=0;
+char data_received;
+int valuea=0;
+
+void setupINSTRUCITONS(){
+ Wifi_connect();
+ Serial1.begin(9600);
+ Serial.begin(9600);
+ wait=true;
+ delay(1000);
+}
+//perp_line=0;
+  
+
+
+void loopINSTRUCTIONS(){
+ 
+ 
+  if(stop_var!=1){update();}
+
+  if(Indicator5==true){checkpoint5();}
+
+  if(wait){
+   stop_car(0); 
+   drive();
+ }
+
+
+ switch(position){
+    case 0:
+            wifi_drive_0(destination);
+            break;
+    case 1:
+            wifi_drive_1(destination);
+            break;
+    case 2:
+            wifi_drive_2(destination);
+            break;
+    case 3:
+            wifi_drive_3(destination);
+            break;
+    case 4:
+            wifi_drive_4(destination);
+            break;
+    default:
+            stop_car(1);
+            break;
+    }
+     
+}
+
+
+
+ void wifi_drive_0(int dest_point){
+  switch(dest_point){
+//////////////////////////////////////////////////////////////////////0000000000000000000000000000000000000000000000000000000000
+   case 1:
+           if(dir==false){
+              if(flag_180==true){
+                  turn_around(1);
+                  flag_180=false;
+                    }
+                  dir=true;
+                  step = 1;            
+                    }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                       perp_line=2;
+                       step = 2;
+                       break;
+                case 1:
+                       step = 2;
+                       perp_line = 2;
+                        break;
+                case 2:
+                        perp_line = 5; 
+                        break;
+                }
+                perp_indicator = 0;
+                delay(x);
+              }
+            break;
+///////////////////////////////////    
+    case 2:
+            if(dir==false){
+            if(flag_180==true){
+                turn_around(1);
+                flag_180=false;
+                  }
+                dir=true;
+                step = 1;
+                  }      
+            if(perp_indicator == 1){
+            switch(step){
+              case 0:
+                      perp_line=0;
+                      step = 2;
+                      break;
+              case 1:
+                      step = 2;
+                      perp_line = 0;
+                      break;
+              case 2:
+                     perp_line = 5;
+                     break;
+              }
+              perp_indicator=0;
+              delay(x);         
+              }
+          break;
+ ///////////////////////////////////   
+    case 3:
+            if(dir==false){
+              if(flag_180==true){
+                  turn_around(1);
+                  flag_180=false;
+                    }
+                  dir=true;
+                  step = 1;            
+                    }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                        perp_line=0;
+                        step = 2;
+                        break;
+                case 1:
+                        step = 2;
+                        perp_line = 0;
+                        break;
+                case 2:
+                        step = 3;
+                        perp_line = 0;
+                        break;
+                case 3:
+                        perp_line = 5;
+                        break;
+                }
+                perp_indicator=0;
+                delay(x);
+              }
+            break;
+////////////////////////////////////////
+    case 4:
+            if(dir){
+              if(flag_180==true){
+                  turn_around(1);
+                  flag_180=false;
+                    }
+                    dir = false;
+                    step = 1;
+                }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                       perp_line=5;
+                       break;
+                case 1:
+                       perp_line = 5;
+                       break;
+                }
+                perp_indicator=0;
+                delay(x);
+              }
+            break;
+///////////////////////////////////////////       
+     case 5:
+              if(dir == false){
+                if(flag_180==true){
+                    turn_around(1);
+                    flag_180=false;
+                      }
+                      dir = true;
+                      step = 1;
+                  }        
+              if(perp_indicator == 1){
+                switch(step){
+                  case 0:
+                         step = 2;
+                         perp_line=2;
+                         break;
+                  case 1:
+                         step = 2;
+                         perp_line = 2;
+                         break;
+                 case 2:
+                         step = 3;
+                         perp_line = 0;
+                         break; 
+                  case 3:
+                         Indicator5 = true;     
+                         break;        
+                  }
+                  perp_indicator=0;
+                  delay(x);
+                } 
+              break;
+///////////////////////////////////////////
+    default:
+              perp_line=5;
+              break;
+    }
+  }
+
+void wifi_drive_1(int dest_point){
+   switch(dest_point){
+/////////////////////////////////////////////////////////////////////11111111111111111111111111111111111111111111 
+    case 0:
+            if(dir){
+                if(flag_180==true){
+                turn_around(1);
+                flag_180=false;
+                }
+                dir=false;
+                step = 1;
+                }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                        perp_line=3;
+                        step = 2;
+                        break;
+                case 1:
+                        perp_line = 3;
+                        step = 2;
+                        break;
+                case 2:
+                        perp_line = 5;
+                        break;
+                }
+                perp_indicator=0;
+                delay(x);
+              }
+            break;
+////////////////////////////////////////    
+    case 2:
+            if(dir == true &&sc == true){
+            if(flag_180==true){
+            turn_around(1);
+            flag_180=false;
+            }
+            dir=true;
+            sc = false;
+            step = 1;
+            }
+        if(perp_indicator == 1){
+          switch(step){
+            case 0:
+                    step = 2;
+                    perp_line = 2;
+                    break;
+            case 1:
+                    step = 2;
+                    perp_line = 2;
+                    break;
+            case 2:
+                    perp_line = 5;
+                    break;
+            }
+            perp_indicator=0;
+            delay(x);
+          }
+        break;
+///////////////////////////////////////////////    
+    case 3:
+            if(dir==false && sc == true){
+            if(flag_180==true){
+             turn_around(1);
+             flag_180=false;
+             }
+            dir=false;
+            sc=false;
+            step = 1;
+            }
+            dir=false;
+            sc=false;
+        if(perp_indicator == 1){
+          switch(step){
+            case 0:
+                    perp_line = 3;
+                    step = 2;
+                    break;
+            case 1:
+                    step = 2;
+                    perp_line = 3;
+                    break;
+            case 2:
+                    perp_line = 5;
+                    break;
+            }
+            perp_indicator=0;
+            delay(x);
+          }
+        break;
+////////////////////////////////////////////////    
+    case 4:
+             if(dir==false){
+              if(flag_180==true){
+               turn_around(1);
+               flag_180=false;
+               }
+              dir=true;
+              step = 1;
+              }
+          if(perp_indicator == 1){
+            switch(step){
+              case 0:
+                      step = 2;
+                      perp_line = 2;
+                      break;
+              case 1:
+                      step = 2;
+                      perp_line = 2;
+                      break;
+              case 2:
+                      perp_line = 5;
+                      break;
+              }
+              perp_indicator=0;
+              delay(x);
+          }
+          break;
+/////////////////////////////////////////////////
+     case 5:
+              if(dir == false){
+                if(flag_180==true){
+                    turn_around(1);
+                    flag_180=false;
+                      }
+                      dir = true;
+                      step = 1;
+                  }        
+              if(perp_indicator == 1){
+                switch(step){
+                  case 0:
+                         Indicator5 = true;
+                         break;
+                  case 1:
+                          step = 2;
+                          perp_line = 0;
+                          break;
+                  case 2:
+                         Indicator5 = true; 
+                         break;        
+                  }
+                  perp_indicator=0;
+                  delay(x);
+                }
+              break;
+///////////////////////////////////////////
+    default:
+              stop_car(1);
+              break;
+    }
+  }
+
+void wifi_drive_2(int dest_point){
+   switch(dest_point){
+//////////////////////////////////////////////////////////////////////////////////////////222222222222222222222222222222
+    case 0:
+            if(dir){
+            if(flag_180==true){
+             turn_around(1);
+             flag_180=false;
+             }
+            dir=false;
+            step = 1;
+            }
+        if(perp_indicator == 1){
+          switch(step){
+            case 0:
+                    step = 2;
+                    perp_line = 0;
+                    break;
+            case 1:
+                    step = 2;
+                    perp_line = 0;
+                    break;
+            case 2:
+                    perp_line = 5;
+                    break;
+            }
+            perp_indicator=0;
+            delay(x);
+          }
+        break;
+////////////////////////////////////////////////////////    
+    case 1:
+            if(dir==true && sc == true){
+            if(flag_180==true){
+             turn_around(1);
+             flag_180=false;
+             }
+            dir=true;
+            sc=false;
+            step = 1;
+            }
+    if(perp_indicator == 1){
+          switch(step){
+            case 0:
+                    step = 2;
+                    perp_line = 3;
+                    break;
+            case 1:
+                    step = 2;
+                    perp_line = 3;
+                    break;
+            case 2:
+                    perp_line = 5;
+                    break;
+            }
+            perp_indicator=0;
+            delay(x);
+          }
+        break;
+/////////////////////////////////////////////////////////    
+    case 3:
+            if(dir==false){
+                if(flag_180==true){
+                 turn_around(1);
+                 flag_180=false;
+                 }
+                dir=true;
+                step = 1;
+                }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                        perp_line = 5;
+                        break;
+                case 1:
+                        perp_line = 5;
+                        break;
+                }
+                perp_indicator=0;
+                delay(x);
+              }
+            break;
+/////////////////////////////////////////////////////////    
+    case 4:
+            if(dir){
+                if(flag_180==true){
+                 turn_around(1);
+                 flag_180=false;
+                 }
+                dir=false;
+                step = 1;
+                }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                        step = 2;
+                        perp_line = 0;
+                        break;
+                case 1:
+                        step = 2;
+                        perp_line = 0;
+                        break;
+                case 2:
+                        step = 3;
+                        perp_line = 0;
+                        break;
+                case 3 :
+                        perp_line = 5;
+                        break;
+                }
+                perp_indicator=0;
+                delay(x);
+              }
+            break;
+////////////////////////////////////////////////////////////     
+     case 5:
+              if(dir){
+                if(flag_180==true){
+                    turn_around(1);
+                    flag_180=false;
+                      }
+                      dir = false;
+                      step = 1;
+                  }        
+              if(perp_indicator == 1){
+                switch(step){
+                  case 0:
+                         step = 2;
+                         perp_line=3;
+                         break;
+                  case 1:
+                         step = 2;
+                         perp_line = 3;
+                         break;
+                 case 2:
+                         step = 3;
+                         perp_line = 0;
+                         break; 
+                  case 3:
+                         Indicator5 = true;       
+                         break;       
+                  }
+                  perp_indicator=0;
+                  delay(x);
+              }
+           break;
+///////////////////////////////////////////   
+    default:
+            stop_car(1);
+            break;
+    }
+  }
+
+void wifi_drive_3(int dest_point){
+   switch(dest_point){
+////////////////////////////////////////////////////////////////////////3333333333333333333333333333333333333333333333333333333333333
+    case 0:
+            if(dir){
+            if(flag_180==true){
+             turn_around(1);
+             flag_180=false;
+             }
+            dir=false;
+            step = 1;
+            }
+        if(perp_indicator == 1){
+          switch(step){
+            case 0:
+                    step = 2;
+                    perp_line = 0;
+                    break;
+            case 1:
+                    step = 2;
+                    perp_line = 0;
+                    break;
+            case 2:
+                    step = 3;
+                    perp_line = 0;
+                    break;
+            case 3:
+                    perp_line = 5;
+                    break;
+            }
+            perp_indicator=0;
+            delay(x);
+          }
+        break;
+///////////////////////////////////////////////////////////////    
+    case 1:
+            if(dir==false && sc==true){
+                if(flag_180==true){
+                 turn_around(1);
+                 flag_180=false;
+                 }
+                dir=false;
+                sc=false;
+                step = 1;
+                }
+                dir=false;
+                sc=false;
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                        step = 2;
+                        perp_line = 2;
+                        break;
+                case 1:
+                        step = 2;
+                        perp_line = 2;
+                        break;
+                case 2:
+                        perp_line = 5;
+                        break;
+        
+                }
+                perp_indicator=0;
+                delay(x);
+            }
+            break;
+//////////////////////////////////////////////////////////////////////    
+    case 2:
+            if(dir){
+                if(flag_180==true){
+                 turn_around(1);
+                 flag_180=false;
+                 }
+                dir=false;
+                step = 1;
+                }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                        perp_line = 5;
+                        break;
+                case 1:
+                        perp_line = 5;
+                        break;
+                }
+                perp_indicator=0;
+                delay(x);
+              }
+            break;
+////////////////////////////////////////////////////////////////////    
+    case 4:
+            if(dir==false){
+                if(flag_180==true){
+                 turn_around(1);
+                 flag_180=false;
+                 }
+                dir=true;
+                step = 1;
+                }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                        step = 2;
+                        perp_line = 0;
+                        break;
+                case 1:
+                        step = 2;
+                        perp_line = 0;
+                        break;
+                case 2:
+                        perp_line = 5;
+                        break;
+                }
+                perp_indicator=0;
+                delay(x);
+              }
+            break;
+///////////////////////////////////////////////////////////////     
+     case 5:
+              if(dir){
+                if(flag_180==true){
+                    turn_around(1);
+                    flag_180=false;
+                      }
+                      dir = false;
+                      step = 1;
+                  }        
+              if(perp_indicator == 1){
+                switch(step){
+                  case 0:
+                         step = 2;
+                         perp_line=0;
+                         break;
+                  case 1:
+                         step = 2;
+                         perp_line = 0;
+                         break;
+                 case 2:
+                         step = 3;
+                         perp_line = 3;
+                         break;
+                 case 3:
+                         step = 4;
+                         perp_line = 0;
+                         break;  
+                 case 4:
+                          Indicator5 = true;  
+                          break;            
+                  }
+                  perp_indicator=0;
+                  delay(x);
+              }
+           break;
+/////////////////////////////////////////// 
+    default:
+            stop_car(1);
+            break;
+    }
+  }
+
+void wifi_drive_4(int dest_point){
+   switch(dest_point){
+//////////////////////////////////////////////////////////////////////////444444444444444444444444444444444444444444444444
+    case 0:
+            if(dir==false){
+                if(flag_180==true){
+                 turn_around(1);
+                 flag_180=false;
+                 }
+                dir=true;
+                step = 1;
+                }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                        perp_line = 5;
+                        break;
+                case 1:
+                        perp_line = 5;
+                        break;
+                }
+                perp_indicator=0;
+                delay(x);
+              }
+            break;
+/////////////////////////////////////////////////////////    
+    case 1:
+            if(dir){
+                if(flag_180==true){
+                 turn_around(1);
+                 flag_180=false;
+                 }
+                dir=false;
+                step = 1;
+                }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                        step = 2;
+                        perp_line = 3;
+                        break;
+                case 1:
+                        step = 2;
+                        perp_line = 3;
+                        break;
+               case 2:
+                        perp_line = 5;
+                        break;
+                }
+                perp_indicator=0;
+                delay(x);
+              }
+            break;
+/////////////////////////////////////////////////////////    
+    case 2:
+            if(dir==false){
+                if(flag_180==true){
+                 turn_around(1);
+                 flag_180=false;
+                 }
+                dir=true;
+                step = 1;
+                }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                        step = 2;
+                        perp_line = 0;
+                        break;
+                case 1:
+                        step = 2;
+                        perp_line = 0;
+                        break;
+                case 2:
+                        step = 3;
+                        perp_line = 0;
+                        break;
+                case 3:
+                        perp_line = 5;
+                        break;
+                }
+                perp_indicator=0;
+                delay(x);
+              }
+            break;
+///////////////////////////////////////////////////////////    
+    case 3:
+            if(dir){
+                if(flag_180==true){
+                 turn_around(1);
+                 flag_180=false;
+                 }
+                dir=false;
+                step = 1;
+                }
+            if(perp_indicator == 1){
+              switch(step){
+                case 0:
+                        step = 2;
+                        perp_line = 0;
+                        break;
+                case 1:
+                        step = 2;
+                        perp_line = 0;
+                        break;
+                case 2:
+                        perp_line = 5;
+                        break;
+                }
+                perp_indicator=0;
+                delay(x);
+              }
+            break;
+///////////////////////////////////////////    
+     case 5:
+              if(dir==false){
+                if(flag_180==true){
+                    turn_around(1);
+                    flag_180=false;
+                      }
+                      dir = true;
+                      step = 1;
+                  }        
+              if(perp_indicator == 1){
+                switch(step){
+                  case 0:
+                         step = 2;
+                         perp_line=0;
+                         break;
+                  case 1:
+                         step = 2;
+                         perp_line = 0;
+                         break;
+                 case 2:
+                         step = 3;
+                         perp_line = 2;
+                         break; 
+                 case 3:
+                         step = 4;
+                         perp_line = 0;
+                         break;
+                 case 4:
+                         Indicator5 = true;    
+                         break;         
+                  }
+                  perp_indicator=0;
+                  delay(x);
+                } 
+              break;
+///////////////////////////////////////////
+    default:
+            stop_car(1);
+            break;
+    } 
+    }
+
+    void update(){
+        position = b;
+        connect();
+        GetPosition();
+        client.stop();
+        flag_180 = true;
+        step = 0;
+        perp_indicator = 1;
+        sc = true;
+        
+        if(stop1==1){
+          while(true){
+            stop_car(1);
+          }
+        }
+     }
+
+      void checkpoint5(){
+             wait = false;
+                if(stop_var==1){
+                analogWrite(motor2PWM, x2); 
+                analogWrite(motor1PWM, x1);
+                }
+                runprox();
+        }
