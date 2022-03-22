@@ -1,6 +1,6 @@
 #include <Servo.h>
 #include <WiFi.h>
-const int trigPin = 19 ; //Servo trig pin to D10
+const int trigPin = 19 ; //Servo trig pin to D10             // Sets the pins on MSP board for the ultrasonic sensor
 const int echoPin = 18; // Servo echo pin to D11
 
 char ssid[] = "DCU-Guest-WiFi";
@@ -14,10 +14,10 @@ int motor2Phase = 38; // P2.7
 
 long duration;
 int distance;
-int angle=45; //100 -0 degrees
+int angle=45; //100-0 degrees
 
 bool trig1= true;
-int trig2=0;
+int trig2=0;                     //Variables that are used as triggers for the angle of the servo motor to help the vehicle be straight as it follows your hand
 
 
 Servo servo_motor; //Servo
@@ -42,21 +42,18 @@ pinMode(echoPin, INPUT);
 void loop(){
 
   delay(100);
-  digitalWrite(trigPin , HIGH);
+  digitalWrite(trigPin , HIGH);                      //Sits the pins as an output to allow the echo sensor to sense how far away the hand is 
   delayMicroseconds(1000);
   digitalWrite(trigPin , LOW);
   duration = pulseIn(echoPin , HIGH);
   distance = (duration/2) / 28.5;
 
 
- /* Serial.print("Distance: ");
-  Serial.println(distance);
-  Serial.print("Angle: ");
-  Serial.println(angle);*/
+/*Functions based how far and the direction the hand was away from the vehicle, it would take the angle into consideration it would allow the car to turn 
+  according to its angle and allow the vehicle to drive straight after a while*/ 
+  
 
-
-
-if(angle>=40 && angle<=50 && distance >11  && distance <= 40){ /// Straight
+if(angle>=40 && angle<=50 && distance >11  && distance <= 40){ /// Straight                
   digitalWrite(motor1Phase, HIGH); //forward
   analogWrite(motor1PWM, 140); // set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
@@ -618,8 +615,9 @@ switch(angle){
 
  
 }}
-  
-if(distance > 40){ // to Stop
+
+  //Used when the car isn't sensing anything and will scan its surroundings to look for where the hand is located
+if(distance > 40){ // to Stop           
     analogWrite(motor1PWM, 0); // set speed of motor
     analogWrite(motor2PWM, 0);
    if(angle<=100 && angle>=5){
@@ -651,7 +649,7 @@ if(distance > 40){ // to Stop
 
 }
 
-void Wifi_connect() {
+void Wifi_connect() {   //connects to the wifi
 Serial.print("Connecting to network: ");
 Serial.print(ssid);
 Serial.flush();
